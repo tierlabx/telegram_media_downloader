@@ -14,6 +14,7 @@ from utils.format import (
     replace_date_time,
     truncate_filename,
     validate_title,
+    extract_drama_title,
 )
 
 sys.path.append("..")  # Adds higher directory to python modules path.
@@ -253,3 +254,27 @@ class TestValidateTitle(unittest.TestCase):
         result = validate_title(title)
         self.assertEqual(result, "Mocked_Title")
         mock_re_sub.assert_called_once_with(r"[/\\:*?\"<>|\n]", "_", title)
+
+    def test_extract_drama_title(self):
+        # Hashtag test case (as in user screenshot)
+        text1 = "#嫁金钗  第20集  #电视剧 #4k 需要其他集数点击 蓝色剧名 评论区网盘 22-28单更"
+        self.assertEqual(extract_drama_title(text1), "嫁金钗")
+
+        # Book quote test cases
+        text2 = "《庆余年第二季》第05集 4K 60FPS"
+        self.assertEqual(extract_drama_title(text2), "庆余年第二季")
+
+        text3 = "【繁花】EP10 1080P 高清"
+        self.assertEqual(extract_drama_title(text3), "繁花")
+
+        # Standard prefix format
+        text4 = "大奉打更人 第01集 4K"
+        self.assertEqual(extract_drama_title(text4), "大奉打更人")
+
+        text5 = "边水往事 S01E03"
+        self.assertEqual(extract_drama_title(text5), "边水往事")
+
+        # No title / empty
+        self.assertIsNone(extract_drama_title(""))
+        self.assertIsNone(extract_drama_title(None))
+        self.assertIsNone(extract_drama_title("Just random text without drama markers"))

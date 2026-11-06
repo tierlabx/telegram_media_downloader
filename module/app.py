@@ -410,6 +410,7 @@ class Application:
         self.date_format: str = "%Y_%m"
         self.drop_no_audio_video: bool = False
         self.enable_download_txt: bool = False
+        self.auto_extract_drama_title: bool = False
         self.filter_advertisement_list: yaml.comments.CommentedSeq = (
             yaml.comments.CommentedSeq([])
         )
@@ -550,6 +551,9 @@ class Application:
 
         self.enable_download_txt = get_config(
             _config, "enable_download_txt", self.enable_download_txt, bool
+        )
+        self.auto_extract_drama_title = get_config(
+            _config, "auto_extract_drama_title", self.auto_extract_drama_title, bool
         )
 
         self.filter_advertisement_list = get_config(
@@ -715,7 +719,11 @@ class Application:
         return ret
 
     def get_file_save_path(
-        self, media_type: str, chat_title: str, media_datetime: str
+        self,
+        media_type: str,
+        chat_title: str,
+        media_datetime: str,
+        drama_title: Optional[str] = None,
     ) -> str:
         """Get file save path prefix.
 
@@ -740,6 +748,8 @@ class Application:
         for prefix in self.file_path_prefix:
             if prefix == "chat_title":
                 res = os.path.join(res, chat_title)
+            elif prefix == "drama_title":
+                res = os.path.join(res, drama_title if drama_title else chat_title)
             elif prefix == "media_datetime":
                 res = os.path.join(res, media_datetime)
             elif prefix == "media_type":
@@ -888,6 +898,7 @@ class Application:
             self.config.pop("last_read_message_id")
 
         self.config["language"] = self.language.name
+        self.config["auto_extract_drama_title"] = self.auto_extract_drama_title
         # for it in self.downloaded_ids:
         #    self.already_download_ids_set.add(it)
 

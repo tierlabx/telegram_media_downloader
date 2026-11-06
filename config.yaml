@@ -22,3 +22,6 @@ media_types:
 - video_note
 # in linux please use /
 # save_path: E:\github\telegram_media_downloader
+
+# 是否自动从消息/描述中提取电视剧名作为目录保存
+auto_extract_drama_title: false

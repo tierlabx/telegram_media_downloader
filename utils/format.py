@@ -284,3 +284,38 @@ def create_progress_bar(progress, total_bars=10):
     remaining_bars = total_bars - completed_bars
     progress_bar = "█" * completed_bars + "░" * remaining_bars
     return progress_bar
+
+
+
+
+def extract_drama_title(text: Optional[str]) -> Optional[str]:
+    """Extract drama / show title from message caption or text."""
+    if not text:
+        return None
+
+    # 1. 优先匹配书名号《剧名》或【剧名】
+    match = re.search(r"[《【](.*?)[》】]", text)
+    if match and match.group(1).strip():
+        return match.group(1).strip()
+
+    # 2. 匹配 #标签 (例如 #嫁金钗)
+    tags = re.findall(r"#([^\s#]+)", text)
+    ignore_tags = {
+        "电视剧", "4k", "4K", "1080p", "1080P", "60fps", "60FPS",
+        "电影", "短剧", "动漫", "国产剧", "韩剧", "美剧", "日剧",
+        "网盘", "合集", "预告", "全集", "更新", "连载", "完结",
+        "国漫", "综艺", "纪录片", "夸克", "百度", "迅雷", "阿里",
+    }
+    for tag in tags:
+        clean_tag = tag.strip()
+        if clean_tag.lower() not in {t.lower() for t in ignore_tags} and not clean_tag.isdigit():
+            return clean_tag
+
+    # 3. 匹配常见剧名格式，如: "剧名 第xx集", "剧名 EPxx", "剧名 S01E01"
+    match = re.search(r"^\s*([^\s\r\n#《【]+?)\s*(?:第\s*\d+\s*集|EP?\s*\d+|S\d+E\d+)", text, re.IGNORECASE)
+    if match and match.group(1).strip():
+        title = match.group(1).strip()
+        if title.lower() not in {t.lower() for t in ignore_tags}:
+            return title
+
+    return None

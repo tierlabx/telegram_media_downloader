@@ -28,7 +28,7 @@ from module.pyrogram_extension import (
     upload_telegram_chat,
 )
 from module.web import init_web
-from utils.format import truncate_filename, validate_title
+from utils.format import extract_drama_title, truncate_filename, validate_title
 from utils.log import LogFilter
 from utils.meta import print_meta
 from utils.meta_data import MetaData
@@ -190,8 +190,20 @@ async def _get_media_meta(
 
     file_name = None
     temp_file_name = None
+    raw_caption = getattr(message, "caption", None)
+    if not raw_caption and getattr(message, "text", None):
+        raw_caption = message.text
+    if not raw_caption and getattr(message, "media_group_id", None):
+        raw_caption = app.get_caption_name(chat_id, message.media_group_id)
+
+    drama_title = None
+    if app.auto_extract_drama_title:
+        drama_title = extract_drama_title(raw_caption)
+
     dirname = validate_title(f"{chat_id}")
-    if message.chat and message.chat.title:
+    if drama_title:
+        dirname = validate_title(drama_title)
+    elif message.chat and message.chat.title:
         dirname = validate_title(f"{message.chat.title}")
 
     if message.date:
@@ -202,7 +214,7 @@ async def _get_media_meta(
     if _type in ["voice", "video_note"]:
         # pylint: disable = C0209
         file_format = media_obj.mime_type.split("/")[-1]  # type: ignore
-        file_save_path = app.get_file_save_path(_type, dirname, datetime_dir_name)
+        file_save_path = app.get_file_save_path(_type, dirname, datetime_dir_name, drama_title)
         file_name = "{} - {}_{}.{}".format(
             message.id,
             _type,
@@ -247,7 +259,7 @@ async def _get_media_meta(
             app.get_file_name(message.id, file_name, caption) + file_name_suffix
         )
 
-        file_save_path = app.get_file_save_path(_type, dirname, datetime_dir_name)
+        file_save_path = app.get_file_save_path(_type, dirname, datetime_dir_name, drama_title)
 
         temp_file_name = os.path.join(app.temp_save_path, dirname, gen_file_name)
 
@@ -272,12 +284,19 @@ async def save_msg_to_file(
     app, chat_id: Union[int, str], message: pyrogram.types.Message
 ):
     """Write message text into file"""
-    dirname = validate_title(
-        message.chat.title if message.chat and message.chat.title else str(chat_id)
-    )
+    drama_title = None
+    if app.auto_extract_drama_title and message.text:
+        drama_title = extract_drama_title(message.text)
+
+    if drama_title:
+        dirname = validate_title(drama_title)
+    else:
+        dirname = validate_title(
+            message.chat.title if message.chat and message.chat.title else str(chat_id)
+        )
     datetime_dir_name = message.date.strftime(app.date_format) if message.date else "0"
 
-    file_save_path = app.get_file_save_path("msg", dirname, datetime_dir_name)
+    file_save_path = app.get_file_save_path("msg", dirname, datetime_dir_name, drama_title)
     file_name = os.path.join(
         app.temp_save_path,
         file_save_path,
